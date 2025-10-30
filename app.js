@@ -23,6 +23,10 @@
     clearAllBtn: document.getElementById('clearAllBtn'),
     exportBtn: document.getElementById('exportBtn'),
     importInput: document.getElementById('importInput'),
+    roomIdInput: document.getElementById('roomIdInput'),
+    createRoomBtn: document.getElementById('createRoomBtn'),
+    roomLinkInput: document.getElementById('roomLinkInput'),
+    copyRoomLinkBtn: document.getElementById('copyRoomLinkBtn'),
 
     conversationTitle: document.getElementById('conversationTitle'),
     deleteConvBtn: document.getElementById('deleteConvBtn'),
@@ -48,6 +52,56 @@
   let presence = getLocal(STORAGE_KEYS.presence, {});
   let pinHash = localStorage.getItem(STORAGE_KEYS.pinHash) || '';
   let isLocked = getLocal(STORAGE_KEYS.locked, false) === true;
+
+  // Cloud sync (Firebase RTDB) optional
+  const urlParams = new URLSearchParams(location.search);
+  let roomId = urlParams.get('room') || '';
+  let cloudEnabled = typeof window !== 'undefined' && !!window.FIREBASE_CONFIG;
+  let db = null;
+  let dbRef = null;
+  let dbUnsub = null; // off listener
+
+  function randId() {
+    return Math.random().toString(36).slice(2, 10);
+  }
+
+  function buildRoomLink(id) {
+    const u = new URL(location.href);
+    u.searchParams.set('room', id);
+    return u.toString();
+  }
+
+  function ensureFirebase() {
+    if (!cloudEnabled) return false;
+    try {
+      if (!window.firebase?.apps?.length) {
+        window.firebase.initializeApp(window.FIREBASE_CONFIG);
+      }
+      db = window.firebase.database();
+      return true;
+    } catch (e) {
+      cloudEnabled = false;
+      return false;
+    }
+  }
+
+  function attachRoomListener() {
+    if (!cloudEnabled || !roomId || !ensureFirebase()) return;
+    if (dbUnsub) dbUnsub();
+    dbRef = db.ref(`/rooms/${roomId}/messages`);
+    messages = [];
+    dbRef.off();
+    dbRef.on('child_added', (snap) => {
+      const m = snap.val();
+      if (m) {
+        messages.push(m);
+        renderConversation();
+        renderMiniLists();
+        renderUsers();
+      }
+    });
+    dbUnsub = () => dbRef && dbRef.off();
+  }
 
   // --- Simple PIN lock helpers ---
   async function sha256Hex(text) {
@@ -194,31 +248,46 @@
       ts: now(),
       readBy: [currentUser]
     };
-    messages = [...messages, msg];
-    setLocal(STORAGE_KEYS.messages, messages);
+    if (cloudEnabled && roomId && ensureFirebase()) {
+      const ref = db.ref(`/rooms/${roomId}/messages`).push();
+      ref.set(msg);
+    } else {
+      messages = [...messages, msg];
+      setLocal(STORAGE_KEYS.messages, messages);
+      renderConversation();
+      renderMiniLists();
+      renderUsers();
+    }
     el.messageInput.value = '';
-    renderConversation();
-    renderMiniLists();
-    renderUsers();
   }
 
   function deleteConversation() {
     const me = currentUser;
     if (!me) return;
-    messages = messages.filter(m => !(m.from === me && m.to === me));
-    setLocal(STORAGE_KEYS.messages, messages);
-    renderConversation();
-    renderMiniLists();
-    renderUsers();
+    if (cloudEnabled && roomId && ensureFirebase()) {
+      const ref = db.ref(`/rooms/${roomId}/messages`);
+      ref.remove();
+    } else {
+      messages = messages.filter(m => !(m.from === me && m.to === me));
+      setLocal(STORAGE_KEYS.messages, messages);
+      renderConversation();
+      renderMiniLists();
+      renderUsers();
+    }
   }
 
   function clearAllConversations() {
     if (!confirm('모든 대화를 비우시겠습니까?')) return;
-    messages = [];
-    setLocal(STORAGE_KEYS.messages, messages);
-    renderConversation();
-    renderMiniLists();
-    renderUsers();
+    if (cloudEnabled && roomId && ensureFirebase()) {
+      const ref = db.ref(`/rooms/${roomId}/messages`);
+      ref.remove();
+    } else {
+      messages = [];
+      setLocal(STORAGE_KEYS.messages, messages);
+      renderConversation();
+      renderMiniLists();
+      renderUsers();
+    }
   }
 
   function getBuddyOf(user) {
@@ -417,7 +486,9 @@
   function renderAll() {
     // Refresh latest from storage first (other tabs may have updated)
     users = getLocal(STORAGE_KEYS.users, []);
-    messages = getLocal(STORAGE_KEYS.messages, []);
+    if (!cloudEnabled || !roomId) {
+      messages = getLocal(STORAGE_KEYS.messages, []);
+    }
     presence = getLocal(STORAGE_KEYS.presence, {});
     pinHash = localStorage.getItem(STORAGE_KEYS.pinHash) || '';
     isLocked = getLocal(STORAGE_KEYS.locked, false) === true;
@@ -431,6 +502,8 @@
     } else {
       hideLockOverlay();
     }
+    // Cloud attach
+    if (cloudEnabled && roomId) attachRoomListener();
   }
 
   // Event wiring
@@ -522,7 +595,7 @@
   window.addEventListener('storage', (e) => {
     if (
       e.key === STORAGE_KEYS.users ||
-      e.key === STORAGE_KEYS.messages ||
+      (!cloudEnabled || !roomId) && e.key === STORAGE_KEYS.messages ||
       e.key === STORAGE_KEYS.presence ||
       e.key === STORAGE_KEYS.pinHash ||
       e.key === STORAGE_KEYS.locked
@@ -534,6 +607,34 @@
   // Initialize
   if (currentUser) startPresence();
   renderAll();
+
+  // Room UI wiring
+  if (el.roomIdInput && el.roomLinkInput && el.createRoomBtn && el.copyRoomLinkBtn) {
+    // Pre-fill from URL
+    if (roomId) {
+      el.roomIdInput.value = roomId;
+      el.roomLinkInput.value = buildRoomLink(roomId);
+    }
+    el.createRoomBtn.addEventListener('click', () => {
+      const want = (el.roomIdInput.value || '').trim() || randId();
+      roomId = want;
+      const link = buildRoomLink(roomId);
+      el.roomLinkInput.value = link;
+      const u = new URL(location.href);
+      u.searchParams.set('room', roomId);
+      history.replaceState({}, '', u.toString());
+      if (cloudEnabled) attachRoomListener();
+    });
+    el.copyRoomLinkBtn.addEventListener('click', async () => {
+      const link = el.roomLinkInput.value;
+      if (!link) return;
+      try {
+        await navigator.clipboard.writeText(link);
+        el.copyRoomLinkBtn.textContent = '복사됨!';
+        setTimeout(() => el.copyRoomLinkBtn.textContent = '링크 복사', 1200);
+      } catch {}
+    });
+  }
 })();
 
 

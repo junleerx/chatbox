@@ -43,6 +43,19 @@
             <label for="importInput" class="secondary button-like">복원(가져오기)</label>
             <input id="importInput" type="file" accept="application/json" class="hidden">
           </div>
+
+          <div class="card">
+            <h2>공개 방</h2>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input id="roomIdInput" type="text" placeholder="방 ID (비워두면 자동)" style="flex:1; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background: var(--panel-2); color: var(--text);">
+              <button id="createRoomBtn" type="button" class="secondary">방 만들기</button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+              <input id="roomLinkInput" type="text" readonly placeholder="공개 링크" style="flex:1; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background: var(--panel-2); color: var(--text);">
+              <button id="copyRoomLinkBtn" type="button">링크 복사</button>
+            </div>
+            <p class="hint" style="margin-top:8px;">링크가 있는 누구나 이 방의 쪽지를 볼 수 있어요.</p>
+          </div>
         </aside>
 
         <section class="content">
@@ -92,6 +105,10 @@
       </div>
     </div>
 
+    <!-- Firebase (optional: only used if config provided) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <script src="./config.js"></script>
     <script src="./app.js"></script>
   </body>
   </html>
