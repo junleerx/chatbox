@@ -21,6 +21,8 @@
     usersList: document.getElementById('usersList'),
     recipientSelect: document.getElementById('recipientSelect'),
     clearAllBtn: document.getElementById('clearAllBtn'),
+    exportBtn: document.getElementById('exportBtn'),
+    importInput: document.getElementById('importInput'),
 
     conversationTitle: document.getElementById('conversationTitle'),
     deleteConvBtn: document.getElementById('deleteConvBtn'),
@@ -449,6 +451,63 @@
   });
   el.deleteConvBtn.addEventListener('click', deleteConversation);
   el.clearAllBtn.addEventListener('click', clearAllConversations);
+
+  // Backup / Restore
+  if (el.exportBtn) {
+    el.exportBtn.addEventListener('click', () => {
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        data: {
+          users: getLocal(STORAGE_KEYS.users, []),
+          messages: getLocal(STORAGE_KEYS.messages, []),
+          presence: getLocal(STORAGE_KEYS.presence, {}),
+          currentUser: getLocal(STORAGE_KEYS.currentUser, null),
+          pinHash: localStorage.getItem(STORAGE_KEYS.pinHash) || '',
+          locked: getLocal(STORAGE_KEYS.locked, false)
+        }
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `buddy-inbox-backup-${Date.now()}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    });
+  }
+  if (el.importInput) {
+    el.importInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        const d = parsed && parsed.data ? parsed.data : parsed;
+        if (!d) throw new Error('Invalid backup');
+        // Apply
+        setLocal(STORAGE_KEYS.users, d.users || []);
+        setLocal(STORAGE_KEYS.messages, d.messages || []);
+        setLocal(STORAGE_KEYS.presence, d.presence || {});
+        if (typeof d.currentUser !== 'undefined') setLocal(STORAGE_KEYS.currentUser, d.currentUser);
+        if (typeof d.locked !== 'undefined') setLocal(STORAGE_KEYS.locked, d.locked);
+        if (typeof d.pinHash === 'string') localStorage.setItem(STORAGE_KEYS.pinHash, d.pinHash);
+        // Refresh in-memory
+        currentUser = getLocal(STORAGE_KEYS.currentUser, null);
+        users = getLocal(STORAGE_KEYS.users, []);
+        messages = getLocal(STORAGE_KEYS.messages, []);
+        presence = getLocal(STORAGE_KEYS.presence, {});
+        pinHash = localStorage.getItem(STORAGE_KEYS.pinHash) || '';
+        isLocked = getLocal(STORAGE_KEYS.locked, false) === true;
+        renderAll();
+        alert('복원이 완료되었습니다.');
+      } catch (err) {
+        alert('복원에 실패했습니다. 올바른 JSON 파일인지 확인해주세요.');
+      } finally {
+        e.target.value = '';
+      }
+    });
+  }
 
   // Lock overlay events
   if (el.unlockBtn) {
