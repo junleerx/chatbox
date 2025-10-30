@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>쪽지 앱 (로컬 탭 간 실시간)</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <div id="app">
+      <header class="app-header">
+        <h1>쪽지 앱</h1>
+        <div id="authArea" class="auth-area">
+          <div id="authLoggedOut" class="auth-loggedout">
+            <input id="usernameInput" type="text" placeholder="사용자 이름" autocomplete="off">
+            <button id="loginBtn" type="button">로그인</button>
+          </div>
+          <div id="authLoggedIn" class="auth-loggedin hidden">
+            <span id="currentUserLabel"></span>
+            <button id="lockBtn" type="button" class="secondary">잠금</button>
+            <button id="logoutBtn" type="button" class="secondary">로그아웃</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <aside class="sidebar">
+          <div class="card">
+            <h2>내 정보</h2>
+            <div id="usersList" class="users-list empty">로그인하면 내 카드가 표시됩니다.</div>
+          </div>
+
+          <div class="card">
+            <h2>받는 사람</h2>
+            <select id="recipientSelect" disabled>
+              <option value="">로그인 후 자동 설정</option>
+            </select>
+          </div>
+
+          <div class="card small-actions">
+            <button id="clearAllBtn" type="button" class="danger" disabled>모든 대화 비우기</button>
+          </div>
+        </aside>
+
+        <section class="content">
+          <div class="card conversation">
+            <div class="conversation-header">
+              <h2 id="conversationTitle">나와의 대화</h2>
+              <div class="conv-actions">
+                <button id="deleteConvBtn" type="button" class="danger" disabled>이 대화 삭제</button>
+              </div>
+            </div>
+            <ul id="messagesList" class="messages"></ul>
+            <form id="composer" class="composer" autocomplete="off">
+              <input id="messageInput" type="text" placeholder="메시지 입력..." disabled>
+              <button id="sendBtn" type="submit" disabled>전송</button>
+            </form>
+          </div>
+
+          <div class="card inbox-outbox">
+            <div class="columns">
+              <div>
+                <h3>받은 쪽지</h3>
+                <ul id="inboxList" class="mini-list"></ul>
+              </div>
+              <div>
+                <h3>보낸 쪽지</h3>
+                <ul id="outboxList" class="mini-list"></ul>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <p>두 개 이상의 브라우저 탭/창에서 서로 다른 이름으로 로그인해 테스트하세요.</p>
+      </footer>
+    </div>
+
+    <!-- Unlock Overlay -->
+    <div id="lockOverlay" class="lock-overlay hidden">
+      <div class="lock-card">
+        <h2 id="lockTitle">잠금 해제</h2>
+        <input id="pinInput" type="password" inputmode="numeric" pattern="[0-9]*" placeholder="PIN (숫자 4자리 추천)">
+        <div class="actions">
+          <button id="unlockBtn" type="button">해제</button>
+        </div>
+        <p id="lockHint" class="hint"></p>
+      </div>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+  </html>
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>메모앱</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app__header">
+        <h1 class="title">메모앱</h1>
+        <div class="header__actions">
+          <input id="searchInput" class="search" type="search" placeholder="검색 (제목/내용)" />
+          <button id="newNoteBtn" class="btn primary">새 메모</button>
+          <div class="dropdown">
+            <button id="moreBtn" class="btn">더보기 ▾</button>
+            <div class="dropdown__menu" id="moreMenu" hidden>
+              <button id="exportBtn" class="menu__item">모든 메모 내보내기</button>
+              <label class="menu__item">
+                <input id="importInput" type="file" accept="application/json" hidden />
+                <span id="importBtn">메모 가져오기</span>
+              </label>
+              <button id="clearAllBtn" class="menu__item danger">전체 삭제</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="main">
+        <aside class="sidebar" id="notesList" aria-label="메모 목록"></aside>
+        <section class="editor" aria-label="메모 편집기">
+          <div class="editor__toolbar">
+            <button id="pinToggleBtn" class="btn" title="상단 고정/해제">📌 고정</button>
+            <span class="muted" id="lastSavedAt" aria-live="polite"></span>
+          </div>
+          <input id="noteTitle" class="editor__title" type="text" placeholder="제목" />
+          <textarea id="noteBody" class="editor__body" placeholder="메모 내용을 입력하세요..."></textarea>
+          <div class="editor__actions">
+            <button id="deleteNoteBtn" class="btn danger">삭제</button>
+            <button id="saveNoteBtn" class="btn primary">저장</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <template id="noteItemTemplate">
+      <button class="note-item" data-id="">
+        <div class="note-item__row">
+          <span class="note-item__title"></span>
+          <span class="note-item__pin" title="고정됨" aria-hidden="true">📌</span>
+        </div>
+        <div class="note-item__preview"></div>
+        <div class="note-item__meta"></div>
+      </button>
+    </template>
+
+    <script src="./app.js" defer></script>
+  </body>
+  </html>
+
+
