@@ -16,7 +16,13 @@
 html, body { height: 100%; }
 body {
   margin: 0;
-  background: radial-gradient(1000px 600px at 80% -10%, #1d2641 0%, #0f1420 60%), var(--bg);
+  background:
+    radial-gradient(1000px 600px at 80% -10%, #1d2641 0%, #0f1420 60%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='56'>🍕</text></svg>"),
+    var(--bg);
+  background-repeat: no-repeat, repeat, no-repeat;
+  background-size: auto, 120px 120px, auto;
+  background-position: center top, 0 0, center;
   color: var(--text);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
 }
@@ -60,6 +66,12 @@ input:disabled { opacity: 0.6; }
 .badge { background: #22305a; border: 1px solid var(--border); padding: 1px 6px; border-radius: 999px; font-size: 11px; color: #a9b9e5; }
 
 .conversation { display: flex; flex-direction: column; height: 58vh; }
+.conversation {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='160' opacity='0.12'>🍕</text></svg>");
+  background-repeat: no-repeat;
+  background-position: center 35%;
+  background-size: 180px 180px;
+}
 .conversation-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .conv-actions { display: flex; gap: 8px; }
 .messages { list-style: none; margin: 0; padding: 0; flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
